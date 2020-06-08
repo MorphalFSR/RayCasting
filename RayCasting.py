@@ -1,37 +1,52 @@
 import pygame as pg
 from math import *
 
+# initialization
 pg.init()
 s = pg.display.set_mode((500,500))
+#checking if right mouse button is held - used to create rectangles
 right_held = False
 
+# Vector class
 class Vector:
     def __init__(self, origin, magnitude, angle):
+        # Angle of the vector in radians
         self.angle = angle / 360 * pi * 2
         self.magnitude = magnitude
+        # (x,y) of the end point of the vector
         x = int(magnitude * cos(self.angle)) + origin[0]
         y = int(magnitude * sin(self.angle)) + origin[1]
         self.origin = origin
+        # end point of vector
         self.comps = (x,y)
+        # checking if the vector is parallel to the y axis so there isn't division by 0
         if self.origin[0] == self.comps[0]:
             self.slope = inf
         else:
+            # calculating the slope of the line
             self.slope = (self.comps[1]-self.origin[1]) / (self.comps[0]-self.origin[0])
+        # offset of the line relative to the y axis
         self.offset = self.origin[1] - self.origin[0] * self.slope
-
+    
+    # passing through points of the line to check if it collides with any rectangle
     def check_collide(self, obsts):
+        # if the line is parallel to the y axis it passes through rectangles
+        # so instead of going through the points with the x coordinate it uses the y coordinate
         if self.slope == inf:
             for y in range(self.origin[1], self.comps[1], 1 if self.comps[1] >= self.origin[0] else -1):
                 point = (self.origin[0], y)
                 if pg.Rect(point, (0, 0)).collidelist(obsts) > -1:
                     self.comps = point
                     return point
+        # checking collisions of lines that are close to being parallel to the y axis to avoid leaking through rectangles
         elif abs(self.slope) > 3:
             for y in range(self.origin[1], self.comps[1], 1 if self.comps[1] >= self.origin[0] else -1):
                 point = (((y-self.offset)/self.slope), y)
                 if pg.Rect(point, (0, 0)).collidelist(obsts) > -1:
                     self.comps = point
                     return point
+        # for all other lines: going through all x coordinates from the origin to the
+        # end point and calculating the point for each one to check for collisions
         else:
             for x in range(self.origin[0], self.comps[0], 1 if self.comps[0] >= self.origin[0] else -1):
                 point = (x, self.slope*x+self.offset)
